@@ -23,6 +23,7 @@
 #include "common.h"
 #include "conf.h"
 #include "scribe_server.h"
+#include "log_config.h"
 
 using namespace boost;
 using namespace std;

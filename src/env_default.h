@@ -46,6 +46,9 @@ typedef std::vector<std::pair<std::string, int> > server_vector_t;
 // scribe version
 const std::string scribeversion("2.2");
 #define DEFAULT_CONF_FILE_LOCATION "/usr/local/scribe/scribe.conf"
+#define MAX_LOG_TEXT_LENGTH  4096	// 4KB
+
+extern void LOG_OUT(const std::string& log, const unsigned long level);
 
 /*
  * This file contains methods for handling tasks that depend
@@ -57,7 +60,31 @@ const std::string scribeversion("2.2");
 /*
  * Logging
  */
-#define LOG_OPER(format_string,...)                                     \
+
+#define LOG_IMPL(level, format_string, ...)									\
+{																			\
+    time_t now;																\
+    char dbgtime[26] ;														\
+    time(&now);																\
+    ctime_r(&now, dbgtime);													\
+    dbgtime[24] = '\0';														\
+    																		\
+    char str_log[ MAX_LOG_TEXT_LENGTH + 1 ];								\
+    const int n = snprintf(str_log, sizeof(str_log), "[%s] " #format_string "\n", dbgtime, ##__VA_ARGS__); 	\
+    																		\
+	if(n >= 0) {															\
+		if( (unsigned int)(n) < sizeof(str_log) ) {							\
+			LOG_OUT(str_log, level);										\
+		}																	\
+		else {																\
+			std::string msg(n+1, '\0'); 									\
+			snprintf(&msg[0], n+1, "[%s] " #format_string "\n", dbgtime, ##__VA_ARGS__); 					\
+			LOG_OUT(msg.c_str(), level);									\
+		} 																	\
+	}																		\
+}
+
+/*#define LOG_OPER(format_string,...)                                     \
   {                                                                     \
     time_t now;                                                         \
     char dbgtime[26] ;                                                  \
@@ -65,11 +92,14 @@ const std::string scribeversion("2.2");
     ctime_r(&now, dbgtime);                                             \
     dbgtime[24] = '\0';                                                 \
     fprintf(stderr,"[%s] " #format_string " \n", dbgtime,##__VA_ARGS__); \
-  }
-
+  }*/
+#define LOG_OPER(format_string,...)										\
+{																		\
+	LOG_IMPL(0, format_string, ##__VA_ARGS__);							\
+}
 
 extern int debug_level;
-#define LOG_DEBUG(format_string,...) \
+/*#define LOG_DEBUG(format_string,...) \
   { \
     if (debug_level) {                        \
     time_t now; \
@@ -79,7 +109,13 @@ extern int debug_level;
     dbgtime[24] = '\0'; \
     fprintf(stderr,"[%s] " #format_string " \n", dbgtime,##__VA_ARGS__); \
     } \
-  }
+  }*/
+#define LOG_DEBUG(format_string,...)						\
+{ 															\
+	if (debug_level) {                 						\
+		LOG_IMPL(~0, format_string, ##__VA_ARGS__);			\
+	} 														\
+}
 
 namespace scribe {
 
