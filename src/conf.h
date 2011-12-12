@@ -66,9 +66,11 @@ class StoreConf {
   string_map_t values;
   store_conf_map_t stores;
   pStoreConf parent;
+
   static bool parseStore(/*in,out*/ std::queue<std::string>& raw_config,
                          /*out*/ StoreConf* parsed_config);
   static std::string trimString(const std::string& str);
+
   bool readConfFile(const std::string& filename, std::queue<std::string>& _return);
   std::ostream& print(std::ostream& os, uint32_t depth, bool useSpace = true,
                  uint32_t tabw = 2) const;
