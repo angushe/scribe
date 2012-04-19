@@ -1715,8 +1715,12 @@ void BufferStore::setNewRetryInterval(bool success) {
     }
   }
   else {
-    retryInterval = avgRetryInterval - retryIntervalRange/2
-                    + rand() % retryIntervalRange;
+    if (retryIntervalRange > 0) {
+      retryInterval = avgRetryInterval - retryIntervalRange/2
+        + rand() % retryIntervalRange;
+    } else {
+      retryInterval = avgRetryInterval;
+    }
   }
   LOG_OPER("[%s] choosing new retry interval <%lu> seconds",
            categoryHandled.c_str(),
