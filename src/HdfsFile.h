@@ -64,8 +64,8 @@ class HdfsLock {
 class HdfsFile : public FileInterface {
  public:
   HdfsFile(const std::string& name) : FileInterface(name, false) {
-    LOG_OPER("[hdfs] ERROR: HDFS is not supported.  file: %s", name.c_str());
-    LOG_OPER("[hdfs] If you want HDFS Support, please recompile scribe with HDFS support");
+    LOG_ERROR("[hdfs] ERROR: HDFS is not supported.  file: %s", name.c_str());
+    LOG_ERROR("[hdfs] If you want HDFS Support, please recompile scribe with HDFS support");
   }
   static void init() {};
   bool openRead() { return false; };           // open for reading file

@@ -2,6 +2,8 @@
 
 @PRODUCT_MK@
 
+VPATH = log
+
 all:
 
 # IMPORTANT THINGS TO FOLLOW
@@ -50,6 +52,7 @@ if DEBUG
    DEBUG_CPPFLAGS = -DDEBUG_TIMING
 endif
 
+LOG_SOURCES = log/log_config.cpp log/log.cpp log/Logger.cpp log/LogSys.cpp
 
 # Set libraries external to this component.
 EXTERNAL_LIBS = -L$(thrift_home)/lib -L$(fb303_home)/lib -L$(hadoop_home)/lib -lfb303 -lthrift -lthriftnb
@@ -102,7 +105,8 @@ endif
 
 # Binaries -- multiple progs can be defined.
 bin_PROGRAMS = scribed
-scribed_SOURCES = log.cpp log_config.cpp store.cpp store_queue.cpp conf.cpp file.cpp conn_pool.cpp scribe_server.cpp network_dynamic_config.cpp dynamic_bucket_updater.cpp $(FB_SOURCES) $(ENV_SOURCES)
+scribed_SOURCES = store.cpp store_queue.cpp conf.cpp file.cpp conn_pool.cpp scribe_server.cpp network_dynamic_config.cpp dynamic_bucket_updater.cpp $(FB_SOURCES) $(ENV_SOURCES)
+scribed_SOURCES += $(LOG_SOURCES)
 if USE_SCRIBE_HDFS
   scribed_SOURCES += HdfsFile.cpp
 endif

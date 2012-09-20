@@ -24,7 +24,7 @@ HdfsFile::HdfsFile(const std::string& name) : FileInterface(name, false), inputB
   if (fileSys == 0) {
     // ideally, we should throw an exception here, but the scribe store code
     // does not handle this elegantly now.
-    LOG_OPER("[hdfs] ERROR: HDFS is not configured for file: %s", name.c_str());
+    LOG_ERROR("[hdfs] ERROR: HDFS is not configured for file: %s", name.c_str());
   }
   hfile = 0;
 }
@@ -63,7 +63,7 @@ bool HdfsFile::openWrite() {
     return false;
   }
   if (hfile) {
-    LOG_OPER("[hdfs] already opened for write %s", filename.c_str());
+    LOG_WARNING("[hdfs] already opened for write %s", filename.c_str());
     return false;
   }
 
@@ -203,12 +203,12 @@ bool HdfsFile::createSymlink(std::string oldpath, std::string newpath) {
            oldpath.c_str(), newpath.c_str());
   scoped_ptr<HdfsFile> link(new HdfsFile(newpath))
   if (link->openWrite() == false) {
-    LOG_OPER("[hdfs] Creating symlink failed because %s already exists.",
+    LOG_WARNING("[hdfs] Creating symlink failed because %s already exists.",
              newpath.c_str());
     return false;
   }
   if (link->write(oldpath) == false) {
-    LOG_OPER("[hdfs] Writing symlink %s failed", newpath.c_str());
+    LOG_WARNING("[hdfs] Writing symlink %s failed", newpath.c_str());
     return false;
   }
   link->close();
@@ -235,17 +235,17 @@ hdfsFS HdfsFile::connectToPath(const char* uri) {
   const char* colon = strchr(uri, ':');
   // No ':' or ':' is the last character.
   if (!colon || !colon[1]) {
-    LOG_OPER("[hdfs] Missing port specification: \"%s\"", uri);
+    LOG_ERROR("[hdfs] Missing port specification: \"%s\"", uri);
     return NULL;
   }
  
   char* endptr = NULL;
   const long port = strtol(colon + 1, &endptr, 10);
   if (port < 0) {
-    LOG_OPER("[hdfs] Invalid port specification (negative): \"%s\"", uri);
+    LOG_ERROR("[hdfs] Invalid port specification (negative): \"%s\"", uri);
     return NULL;
   } else if (port > std::numeric_limits<tPort>::max()) {
-    LOG_OPER("[hdfs] Invalid port specification (out of range): \"%s\"", uri);
+    LOG_ERROR("[hdfs] Invalid port specification (out of range): \"%s\"", uri);
     return NULL;
   }
  

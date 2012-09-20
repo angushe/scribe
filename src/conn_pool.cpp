@@ -102,7 +102,7 @@ bool ConnPool::openCommon(const string &key, shared_ptr<scribeConn> conn) {
       RETURN(true);
     }
     if (conn->open()) {
-      LOG_OPER("CONN_POOL: switching to a new connection <%s>", key.c_str());
+      LOG_INFO("CONN_POOL: switching to a new connection <%s>", key.c_str());
       conn->setRef(old_conn->getRef());
       conn->addRef();
       // old connection will be magically deleted by shared_ptr
@@ -136,7 +136,7 @@ void ConnPool::closeCommon(const string &key) {
     }
   } else {
     // This can be bad. If one client double closes then other cleints are screwed
-    LOG_OPER("LOGIC ERROR: attempting to close connection <%s> that connPool has no entry for", key.c_str());
+    LOG_ERROR("LOGIC ERROR: attempting to close connection <%s> that connPool has no entry for", key.c_str());
   }
   pthread_mutex_unlock(&mapMutex);
 }
@@ -152,7 +152,7 @@ int ConnPool::sendCommon(const string &key,
     (*iter).second->unlock();
     return result;
   } else {
-    LOG_OPER("send failed. No connection pool entry for <%s>", key.c_str());
+    LOG_INFO("send failed. No connection pool entry for <%s>", key.c_str());
     pthread_mutex_unlock(&mapMutex);
     return (CONN_FATAL);
   }
@@ -253,15 +253,15 @@ bool scribeConn::open() {
       remoteHost = socket->getPeerHost();
     }
   } catch (const TTransportException& ttx) {
-    LOG_OPER("failed to open connection to remote scribe server %s thrift error <%s>",
+    LOG_WARNING("failed to open connection to remote scribe server %s thrift error <%s>",
              connectionString().c_str(), ttx.what());
     return false;
   } catch (const std::exception& stx) {
-    LOG_OPER("failed to open connection to remote scribe server %s std error <%s>",
+    LOG_WARNING("failed to open connection to remote scribe server %s std error <%s>",
              connectionString().c_str(), stx.what());
     return false;
   }
-  LOG_OPER("Opened connection to remote scribe server %s",
+  LOG_INFO("Opened connection to remote scribe server %s",
            connectionString().c_str());
   return true;
 }
@@ -270,7 +270,7 @@ void scribeConn::close() {
   try {
     framedTransport->close();
   } catch (const TTransportException& ttx) {
-    LOG_OPER("error <%s> while closing connection to remote scribe server %s",
+    LOG_WARNING("error <%s> while closing connection to remote scribe server %s",
              ttx.what(), connectionString().c_str());
   }
 }
@@ -306,16 +306,16 @@ scribeConn::send(boost::shared_ptr<logentry_vector_t> messages) {
       return (CONN_OK);
     }
     fatal = false;
-    LOG_OPER("Failed to send <%d> messages, remote scribe server %s "
+    LOG_INFO("Failed to send <%d> messages, remote scribe server %s "
         "returned error code <%d>", size, connectionString().c_str(),
         (int) result);
   } catch (const TTransportException& ttx) {
     fatal = true;
-    LOG_OPER("Failed to send <%d> messages to remote scribe server %s "
+    LOG_INFO("Failed to send <%d> messages to remote scribe server %s "
         "error <%s>", size, connectionString().c_str(), ttx.what());
   } catch (...) {
     fatal = true;
-    LOG_OPER("Unknown exception sending <%d> messages to remote scribe "
+    LOG_INFO("Unknown exception sending <%d> messages to remote scribe "
         "server %s", size, connectionString().c_str());
   }
   /*

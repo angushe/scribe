@@ -23,7 +23,6 @@
 #include "common.h"
 #include "conf.h"
 #include "scribe_server.h"
-#include "log_config.h"
 
 using namespace boost;
 using namespace std;
@@ -175,7 +174,7 @@ void StoreConf::parseConfig(const string& filename) {
   queue<string> config_strings;
 
   if (readConfFile(filename, config_strings)) {
-    LOG_OPER("got configuration data from file <%s>", filename.c_str());
+    LOG_INFO("got configuration data from file <%s>", filename.c_str());
   } else {
     ostringstream msg;
     msg << "Failed to open config file <" << filename << ">";
@@ -221,7 +220,7 @@ bool StoreConf::parseStore(queue<string>& raw_config, /*out*/ StoreConf* parsed_
       // This is the start of a new store
       string::size_type pos = line.find('>');
       if (pos == string::npos) {
-        LOG_OPER("Bad config - line %s has a < but not a >", line.c_str());
+        LOG_ERROR("Bad config - line %s has a < but not a >", line.c_str());
         continue;
       }
       string store_name = line.substr(1, pos - 1);
@@ -237,14 +236,14 @@ bool StoreConf::parseStore(queue<string>& raw_config, /*out*/ StoreConf* parsed_
           ++store_index;
         }
         if (parsed_config->stores.find(store_name) != parsed_config->stores.end()) {
-          LOG_OPER("Bad config - duplicate store name %s", store_name.c_str());
+          LOG_ERROR("Bad config - duplicate store name %s", store_name.c_str());
         }
         parsed_config->stores[store_name] = new_store;
       }
     } else {
       string::size_type eq = line.find('=');
       if (eq == string::npos) {
-        LOG_OPER("Bad config - line %s is missing an =", line.c_str());
+        LOG_ERROR("Bad config - line %s is missing an =", line.c_str());
       } else {
         string arg = line.substr(0, eq);
         string val = line.substr(eq + 1, string::npos);
@@ -254,7 +253,7 @@ bool StoreConf::parseStore(queue<string>& raw_config, /*out*/ StoreConf* parsed_
         val = trimString(val);
 
         if (parsed_config->values.find(arg) != parsed_config->values.end()) {
-          LOG_OPER("Bad config - duplicate key %s", arg.c_str());
+          LOG_ERROR("Bad config - duplicate key %s", arg.c_str());
         }
         parsed_config->values[arg] = val;
       }

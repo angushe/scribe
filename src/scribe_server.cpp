@@ -22,9 +22,9 @@
 // @author Anthony Giardullo
 
 int debug_level = 0;
+#include "log/allyes-log.h"
 #include "common.h"
 #include "scribe_server.h"
-#include "log.h"
 
 using namespace apache::thrift::concurrency;
 
@@ -115,14 +115,14 @@ int main(int argc, char **argv) {
 
     // if "-d" has been given in the command line, we must output the debug messages
     if(1 == debug_level) {
-        LogSys::getInstance()->setLevel(LOG_LEVEL_DEBUG);
+        LOG_SET_LEVEL(LOG_LEVEL_DEBUG);
     }
 
-    // It's placed here because the log service isn't ready until now! by XL
+    // It's placed here because the log service isn't ready until now! by Dionysus Xie
     /* Increase number of fds */
      struct rlimit r_fd = {65535,65535};
      if (-1 == setrlimit(RLIMIT_NOFILE, &r_fd)) {
-       LOG_OPER("setrlimit error (setting max fd size)");
+       LOG_WARNING("setrlimit error (setting max fd size)");
      }
 
     LOG_DEBUG("DEBUG: Scribe started in debug mode");    
@@ -141,10 +141,10 @@ int main(int argc, char **argv) {
     scribe::startServer(); // never returns
 
   } catch(const std::exception& e) {
-    LOG_OPER("Exception in main: %s", e.what());
+    LOG_ERROR("Exception in main: %s", e.what());
   }
 
-  LOG_OPER("scribe server exiting");
+  LOG_INFO("scribe server exiting");
   return 0;
 }
 
@@ -195,7 +195,7 @@ fb_status scribeHandler::getStatus() {
 }
 
 void scribeHandler::setStatus(fb_status new_status) {
-  LOG_OPER("STATUS: %s", statusAsString(new_status));
+  LOG_INFO("STATUS: %s", statusAsString(new_status));
   Guard status_monitor(statusLock);
   status = new_status;
 }
@@ -225,7 +225,7 @@ void scribeHandler::getStatusDetails(std::string& _return) {
 }
 
 void scribeHandler::setStatusDetails(const string& new_status_details) {
-  LOG_OPER("STATUS: %s", new_status_details.c_str());
+  LOG_INFO("STATUS: %s", new_status_details.c_str());
   Guard status_monitor(statusLock);
   statusDetails = new_status_details;
 }
@@ -259,12 +259,12 @@ bool scribeHandler::createCategoryFromModel(
     string clean_path = boost::filesystem::path(category).string();
 
     if (clean_path.compare(category) != 0) {
-      LOG_OPER("Category not a valid boost filename");
+      LOG_ERROR("Category not a valid boost filename");
       return false;
     }
 
   } catch(const std::exception& e) {
-    LOG_OPER("Category not a valid boost filename.  Boost exception:%s", e.what());
+    LOG_ERROR("Category not a valid boost filename.  Boost exception:%s", e.what());
     return false;
   }
 
@@ -272,7 +272,7 @@ bool scribeHandler::createCategoryFromModel(
   if (newThreadPerCategory) {
     // Create a new thread/StoreQueue for this category
     pstore = shared_ptr<StoreQueue>(new StoreQueue(model, category));
-    LOG_OPER("[%s] Creating new category store from model %s",
+    LOG_INFO("[%s] Creating new category store from model %s",
              category.c_str(), model->getCategoryHandled().c_str());
 
     // queue a command to the store to open it
@@ -280,7 +280,7 @@ bool scribeHandler::createCategoryFromModel(
   } else {
     // Use existing StoreQueue
     pstore = model;
-    LOG_OPER("[%s] Using existing store for the config categories %s",
+    LOG_INFO("[%s] Using existing store for the config categories %s",
              category.c_str(), model->getCategoryHandled().c_str());
   }
 
@@ -363,7 +363,7 @@ shared_ptr<store_list_t> scribeHandler::createNewCategory(
       if (cat_iter != categories.end()) {
         store_list = cat_iter->second;
       } else {
-        LOG_OPER("failed to create new prefix store for category <%s>",
+        LOG_INFO("failed to create new prefix store for category <%s>",
                  category.c_str());
       }
 
@@ -383,7 +383,7 @@ shared_ptr<store_list_t> scribeHandler::createNewCategory(
     if (cat_iter != categories.end()) {
       store_list = cat_iter->second;
     } else {
-      LOG_OPER("failed to create new default store for category <%s>",
+      LOG_INFO("failed to create new default store for category <%s>",
           category.c_str());
     }
   }
@@ -428,6 +428,7 @@ ResultCode scribeHandler::Log(const vector<LogEntry>&  messages) {
   }
 
   if (throttleRequest(messages)) {
+    LOG_WARNING("Too many messages received. I can't handle!");
     result = TRY_LATER;
     goto end;
   }
@@ -473,7 +474,7 @@ ResultCode scribeHandler::Log(const vector<LogEntry>&  messages) {
     }
 
     if (store_list == NULL) {
-      LOG_OPER("log entry has invalid category <%s>", category.c_str());
+      LOG_ERROR("log entry has invalid category <%s>", category.c_str());
       incCounter(category, "received bad");
 
       continue;
@@ -506,12 +507,12 @@ bool scribeHandler::throttleDeny(int num_messages) {
   // If we get a single huge packet it's not cool, but we'd better
   // accept it or we'll keep having to read it and deny it indefinitely
   if (num_messages > (int)maxMsgPerSecond/2) {
-    LOG_OPER("throttle allowing rediculously large packet with <%d> messages", num_messages);
+    LOG_INFO("throttle allowing rediculously large packet with <%d> messages", num_messages);
     return false;
   }
 
   if (numMsgLastSecond + num_messages > maxMsgPerSecond) {
-    LOG_OPER("throttle denying request with <%d> messages. It would exceed max of <%lu> messages this second",
+    LOG_INFO("throttle denying request with <%d> messages. It would exceed max of <%lu> messages this second",
            num_messages, maxMsgPerSecond);
     return true;
   } else {
@@ -549,7 +550,7 @@ void scribeHandler::reinitialize() {
   // reinitialize() will re-read the config file and re-configure the stores.
   // This is done without shutting down the Thrift server, so this will not
   // reconfigure any server settings such as port number.
-  LOG_OPER("reinitializing");
+  LOG_INFO("reinitializing");
   stopStores();
   initialize();
 }
@@ -606,7 +607,7 @@ void scribeHandler::initialize() {
     unsigned long int old_port = port;
     config.getUnsigned("port", port);
     if (old_port != 0 && port != old_port) {
-      LOG_OPER("port %lu from conf file overriding old port %lu", port, old_port);
+      LOG_ERROR("port %lu from conf file overriding old port %lu. It will NOT work!", port, old_port);
     }
     if (port <= 0) {
       throw runtime_error("No port number configured");
@@ -618,7 +619,7 @@ void scribeHandler::initialize() {
       numThriftServerThreads = (size_t) num_threads;
 
       if (numThriftServerThreads <= 0) {
-        LOG_OPER("invalid value for num_thrift_server_threads: %lu",
+        LOG_ERROR("invalid value for num_thrift_server_threads: %lu",
                  num_threads);
         throw runtime_error("invalid value for num_thrift_server_threads");
       }
@@ -650,7 +651,7 @@ void scribeHandler::initialize() {
   }
 
   if (numstores) {
-    LOG_OPER("configured <%d> stores", numstores);
+    LOG_INFO("configured <%d> stores", numstores);
   } else {
     setStatusDetails("No stores configured successfully");
     perfect_config = false;
@@ -774,7 +775,7 @@ shared_ptr<StoreQueue> scribeHandler::configureStoreCategory(
     return shared_ptr<StoreQueue>();
   }
 
-  LOG_OPER("CATEGORY : %s", category.c_str());
+  LOG_INFO("CATEGORY : %s", category.c_str());
   if (0 == category.compare("default")) {
     is_default = true;
   }
@@ -849,7 +850,7 @@ shared_ptr<StoreQueue> scribeHandler::configureStoreCategory(
     return (pstore);
   }
   if (is_default) {
-    LOG_OPER("Creating default store");
+    LOG_INFO("Creating default store");
     defaultStores.push_back(pstore);
   } else if (is_prefix_category) {
     shared_ptr<store_list_t> pstores;

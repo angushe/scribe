@@ -20,6 +20,8 @@
 #ifndef SCRIBE_ENV
 #define SCRIBE_ENV
 
+#include "log/allyes-log.h"
+
 #include "thrift/protocol/TBinaryProtocol.h"
 #include "thrift/server/TNonblockingServer.h"
 #include "thrift/concurrency/ThreadManager.h"
@@ -38,7 +40,6 @@
 
 #include "src/gen-cpp/scribe.h"
 #include "src/gen-cpp/BucketStoreMapping.h"
-#include "log.h"
 
 typedef boost::shared_ptr<scribe::thrift::LogEntry> logentry_ptr_t;
 typedef std::vector<logentry_ptr_t> logentry_vector_t;
@@ -61,59 +62,8 @@ const std::string scribeversion("2.2.0");
  * Logging
  */
 
-#define LOG_IMPL(level, format_string, ...)									\
-{																			\
-    time_t now;																\
-    char dbgtime[26] ;														\
-    time(&now);																\
-    ctime_r(&now, dbgtime);													\
-    dbgtime[24] = '\0';														\
-    																		\
-    char str_log[ MAX_LOG_TEXT_LENGTH + 1 ];								\
-    const int n = snprintf(str_log, sizeof(str_log), "[%s] " #format_string "\n", dbgtime, ##__VA_ARGS__); 	\
-    																		\
-	if(n >= 0) {															\
-		if( (unsigned int)(n) < sizeof(str_log) ) {							\
-			LOG_OUT(str_log, level);										\
-		}																	\
-		else {																\
-			std::string msg(n+1, '\0'); 									\
-			snprintf(&msg[0], n+1, "[%s] " #format_string "\n", dbgtime, ##__VA_ARGS__); 					\
-			LOG_OUT(msg.c_str(), level);									\
-		} 																	\
-	}																		\
-}
-
-/*#define LOG_OPER(format_string,...)                                     \
-  {                                                                     \
-    time_t now;                                                         \
-    char dbgtime[26] ;                                                  \
-    time(&now);                                                         \
-    ctime_r(&now, dbgtime);                                             \
-    dbgtime[24] = '\0';                                                 \
-    fprintf(stderr,"[%s] " #format_string " \n", dbgtime,##__VA_ARGS__); \
-  }*/
-#define LOG_OPER(format_string,...)										\
-{																		\
-	LOG_IMPL(LOG_LEVEL_INFO, format_string, ##__VA_ARGS__);				\
-}
-
 extern int debug_level;
-/*#define LOG_DEBUG(format_string,...) \
-  { \
-    if (debug_level) {                        \
-    time_t now; \
-    char dbgtime[26]; \
-    time(&now); \
-    ctime_r(&now, dbgtime); \
-    dbgtime[24] = '\0'; \
-    fprintf(stderr,"[%s] " #format_string " \n", dbgtime,##__VA_ARGS__); \
-    } \
-  }*/
-#define LOG_DEBUG(format_string,...)						\
-{ 															\
-	LOG_IMPL(LOG_LEVEL_DEBUG, format_string, ##__VA_ARGS__);\
-}
+
 
 namespace scribe {
 

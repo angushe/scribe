@@ -1,0 +1,34 @@
+                     scribe 警告与错误（WARNING & ERROR）
+
+一、配置文件格式有错时，报 ERROR；
+    配置项不合相应要求时（如大于0），报 ERROR；
+
+二、类 StoreQueue
+    任何在一个 model store 上不允许的操作，报 ERROR；
+    线程收到未知的命令时，报 ERROR；
+
+三、HdfsFile
+    连接 HDFS 失败时，报 ERROR；
+    创建“符号链接”失败时，报 WARNING;
+    HDFS 路径格式错误、端口号不合法时，报 ERROR；
+    不支持 HDFS 而使用时，报 ERROR；
+    
+四、其它：
+    设置“进程能够打开的最多文件数”失败时，报 WARNING；
+    Category not a valid boost filename. 报 ERROR；
+    所有在 main 函数中捕获的异常，报 ERROR；
+    当收到的 LOG 没有相匹配的 store 来处理时，报 ERROR；
+    处理不过来时，报 WARNING；
+    
+    用 ./scribe_ctrl reload 重启 scribe 时，如果端口号发生变化，报 ERROR；因为新端口号不
+    会起作用！
+    
+       
+FileStore:
+    打开文件时出错：ERROR, store.cpp, 703,717,727
+    写入数据时出错：ERROR
+    关闭文件时出错：无
+    旋转时：同“打开文件”
+    
+NetworkStore：
+    

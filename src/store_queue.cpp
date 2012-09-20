@@ -90,7 +90,7 @@ StoreQueue::~StoreQueue() {
 
 void StoreQueue::addMessage(boost::shared_ptr<LogEntry> entry) {
   if (isModel) {
-    LOG_OPER("ERROR: called addMessage on model store");
+    LOG_ERROR("ERROR: called addMessage on model store");
   } else {
     bool waitForWork = false;
 
@@ -136,7 +136,7 @@ void StoreQueue::configureAndOpen(pStoreConf configuration) {
 
 void StoreQueue::stop() {
   if (isModel) {
-    LOG_OPER("ERROR: called stop() on model store");
+    LOG_ERROR("ERROR: called stop() on model store");
   } else if(!stopping) {
     pthread_mutex_lock(&cmdMutex);
     StoreCommand cmd(CMD_STOP);
@@ -158,7 +158,7 @@ void StoreQueue::stop() {
 
 void StoreQueue::open() {
   if (isModel) {
-    LOG_OPER("ERROR: called open() on model store");
+    LOG_ERROR("ERROR: called open() on model store");
   } else {
     pthread_mutex_lock(&cmdMutex);
     StoreCommand cmd(CMD_OPEN);
@@ -193,14 +193,14 @@ std::string StoreQueue::getBaseType() {
 }
 
 void StoreQueue::threadMember() {
-  LOG_OPER("store thread starting");
+  LOG_INFO("store thread starting");
   if (isModel) {
-    LOG_OPER("ERROR: store thread starting on model store, exiting");
+    LOG_ERROR("ERROR: store thread starting on model store, exiting");
     return;
   }
 
   if (!store) {
-    LOG_OPER("store is NULL, store thread exiting");
+    LOG_WARNING("store is NULL, store thread exiting");
     return;
   }
 
@@ -237,7 +237,7 @@ void StoreQueue::threadMember() {
         stop = true;
         break;
       default:
-        LOG_OPER("LOGIC ERROR: unknown command to store queue");
+        LOG_ERROR("LOGIC ERROR: unknown command to store queue");
         break;
       }
     }
@@ -314,12 +314,12 @@ void StoreQueue::processFailedMessages(shared_ptr<logentry_vector_t> messages) {
     // Save failed messages
     failedMessages = messages;
 
-    LOG_OPER("[%s] WARNING: Re-queueing %lu messages!",
+    LOG_WARNING("[%s] WARNING: Re-queueing %lu messages!",
              categoryHandled.c_str(), messages->size());
     g_Handler->incCounter(categoryHandled, "requeue", messages->size());
   } else {
     // record messages as being lost
-    LOG_OPER("[%s] WARNING: Lost %lu messages!",
+    LOG_WARNING("[%s] WARNING: Lost %lu messages!",
              categoryHandled.c_str(), messages->size());
     g_Handler->incCounter(categoryHandled, "lost", messages->size());
   }

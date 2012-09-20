@@ -7,7 +7,8 @@
 
 #include <stdlib.h>
 #include "log_config.h"
-#include "log.h"
+#include "common.h"
+
 
 using namespace std;
 
@@ -63,10 +64,10 @@ bool LogConfig::getUnsignedLongLong(const string& llName, unsigned long long& _r
 }
 
 bool LogConfig::getString(const string& stringName, string& _return) const {
-	map<std::string, std::string>::const_iterator iter = m_values.find(
+	map<std::string, std::string>::const_iterator iter = values_.find(
 			stringName);
 
-	if (iter != m_values.end()) {
+	if (iter != values_.end()) {
 		_return = iter->second;
 		return true;
 	}
@@ -129,12 +130,12 @@ bool LogConfig::parseStore(queue<string>& raw_config) {
 			return false;
 		}
 
-		if (m_values.find(arg) != m_values.end()) {
+		if (values_.find(arg) != values_.end()) {
 			LOG_TO_STDERR("Bad log config - duplicate key: %s", arg.c_str());
 			return false;
 		}
 
-		m_values[arg] = val;
+		values_[arg] = val;
 	}
 
 	return true;

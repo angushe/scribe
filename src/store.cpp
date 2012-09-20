@@ -149,25 +149,25 @@ std::string Store::getStatus() {
 
 bool Store::readOldest(/*out*/ boost::shared_ptr<logentry_vector_t> messages,
                        struct tm* now) {
-  LOG_OPER("[%s] ERROR: attempting to read from a write-only store",
+  LOG_ERROR("[%s] ERROR: attempting to read from a write-only store",
           categoryHandled.c_str());
   return false;
 }
 
 bool Store::replaceOldest(boost::shared_ptr<logentry_vector_t> messages,
                           struct tm* now) {
-  LOG_OPER("[%s] ERROR: attempting to read from a write-only store",
+  LOG_ERROR("[%s] ERROR: attempting to read from a write-only store",
           categoryHandled.c_str());
   return false;
 }
 
 void Store::deleteOldest(struct tm* now) {
-   LOG_OPER("[%s] ERROR: attempting to read from a write-only store",
+   LOG_ERROR("[%s] ERROR: attempting to read from a write-only store",
             categoryHandled.c_str());
 }
 
 bool Store::empty(struct tm* now) {
-  LOG_OPER("[%s] ERROR: attempting to read from a write-only store",
+  LOG_ERROR("[%s] ERROR: attempting to read from a write-only store",
             categoryHandled.c_str());
   return true;
 }
@@ -228,7 +228,7 @@ void FileStoreBase::configure(pStoreConf configuration, pStoreConf parent) {
 
 
   if (!configuration->getString("base_filename", baseFileName)) {
-    LOG_OPER(
+    LOG_WARNING(
         "[%s] WARNING: Bad config - no base_filename specified for file store",
         categoryHandled.c_str());
   }
@@ -274,7 +274,7 @@ void FileStoreBase::configure(pStoreConf configuration, pStoreConf parent) {
 
       if (!ok) {
         rollPeriod = ROLL_NEVER;
-        LOG_OPER("[%s] WARNING: Bad config - invalid format of rotate_period, rotations disabled",
+        LOG_ERROR("[%s] WARNING: Bad config - invalid format of rotate_period, rotations disabled",
             categoryHandled.c_str());
       }
     }
@@ -417,7 +417,7 @@ void FileStoreBase::rotateFile(time_t currentTime) {
   currentTime = currentTime > 0 ? currentTime : time(NULL);
   localtime_r(&currentTime, &timeinfo);
 
-  LOG_OPER("[%s] %d:%d rotating file <%s> old size <%lu> max size <%lu>",
+  LOG_INFO("[%s] %d:%d rotating file <%s> old size <%lu> max size <%lu>",
            categoryHandled.c_str(), timeinfo.tm_hour, timeinfo.tm_min,
            makeBaseFilename(&timeinfo).c_str(), currentSize,
            maxSize == ULONG_MAX ? 0 : maxSize);
@@ -537,7 +537,7 @@ void FileStoreBase::printStats() {
   if (!stats_file ||
       !stats_file->createDirectory(filePath) ||
       !stats_file->openWrite()) {
-    LOG_OPER("[%s] Failed to open stats file <%s> of type <%s> for writing",
+    LOG_WARNING("[%s] Failed to open stats file <%s> of type <%s> for writing",
              categoryHandled.c_str(), filename.c_str(), fsType.c_str());
     // This isn't enough of a problem to change our status
     return;
@@ -584,20 +584,20 @@ void FileStoreBase::setHostNameSubDir() {
   if (!subDirectory.empty()) {
     string error_msg = "WARNING: Bad config - ";
     error_msg += "use_hostname_sub_directory will override sub_directory path";
-    LOG_OPER("[%s] %s", categoryHandled.c_str(), error_msg.c_str());
+    LOG_WARNING("[%s] %s", categoryHandled.c_str(), error_msg.c_str());
   }
 
   char hostname[255];
   int error = gethostname(hostname, sizeof(hostname));
   if (error) {
-    LOG_OPER("[%s] WARNING: gethostname returned error: %d ",
+    LOG_WARNING("[%s] WARNING: gethostname returned error: %d ",
              categoryHandled.c_str(), error);
   }
 
   string hoststring(hostname);
 
   if (hoststring.empty()) {
-    LOG_OPER("[%s] WARNING: could not get host name",
+    LOG_WARNING("[%s] WARNING: could not get host name",
              categoryHandled.c_str());
   } else {
     subDirectory = hoststring;
@@ -700,7 +700,7 @@ bool FileStore::openInternal(bool incrementFilename, struct tm* current_time) {
 
     writeFile = FileInterface::createFileInterface(fsType, file, isBufferFile);
     if (!writeFile) {
-      LOG_OPER("[%s] Failed to create file <%s> of type <%s> for writing",
+      LOG_ERROR("[%s] Failed to create file <%s> of type <%s> for writing",
                categoryHandled.c_str(), file.c_str(), fsType.c_str());
       setStatus("file open error");
       return false;
@@ -714,7 +714,7 @@ bool FileStore::openInternal(bool incrementFilename, struct tm* current_time) {
     }
 
     if (!success) {
-      LOG_OPER("[%s] Failed to create directory for file <%s>",
+      LOG_ERROR("[%s] Failed to create directory for file <%s>",
                categoryHandled.c_str(), file.c_str());
       setStatus("File open error");
       return false;
@@ -724,7 +724,7 @@ bool FileStore::openInternal(bool incrementFilename, struct tm* current_time) {
 
 
     if (!success) {
-      LOG_OPER("[%s] Failed to open file <%s> for writing",
+      LOG_ERROR("[%s] Failed to open file <%s> for writing",
               categoryHandled.c_str(),
               file.c_str());
       setStatus("File open error");
@@ -741,7 +741,7 @@ bool FileStore::openInternal(bool incrementFilename, struct tm* current_time) {
       }
       // else it confuses the filename code on reads
 
-      LOG_OPER("[%s] Opened file <%s> for writing", categoryHandled.c_str(),
+      LOG_INFO("[%s] Opened file <%s> for writing", categoryHandled.c_str(),
               file.c_str());
 
       currentSize = writeFile->fileSize();
@@ -751,9 +751,9 @@ bool FileStore::openInternal(bool incrementFilename, struct tm* current_time) {
     }
 
   } catch(const std::exception& e) {
-    LOG_OPER("[%s] Failed to create/open file of type <%s> for writing",
+    LOG_ERROR("[%s] Failed to create/open file of type <%s> for writing",
              categoryHandled.c_str(), fsType.c_str());
-    LOG_OPER("Exception: %s", e.what());
+    LOG_ERROR("Exception: %s", e.what());
     setStatus("file create/open error");
 
     return false;
@@ -791,7 +791,7 @@ bool FileStore::handleMessages(boost::shared_ptr<logentry_vector_t> messages) {
 
   if (!isOpen()) {
     if (!open()) {
-      LOG_OPER("[%s] File failed to open FileStore::handleMessages()",
+      LOG_INFO("[%s] File failed to open FileStore::handleMessages()",
                categoryHandled.c_str());
       return false;
     }
@@ -881,7 +881,7 @@ bool FileStore::writeMessages(boost::shared_ptr<logentry_vector_t> messages,
       if ((current_size_buffered > max_write_size && maxSize != 0) ||
           messages->end() == iter + 1 ) {
         if (!write_file->write(write_buffer)) {
-          LOG_OPER("[%s] File store failed to write (%lu) messages to file",
+          LOG_ERROR("[%s] File store failed to write (%lu) messages to file",
                    categoryHandled.c_str(), messages->size());
           setStatus("File write error");
           success = false;
@@ -902,7 +902,7 @@ bool FileStore::writeMessages(boost::shared_ptr<logentry_vector_t> messages,
       }
     }
   } catch (const std::exception& e) {
-    LOG_OPER("[%s] File store failed to write. Exception: %s",
+    LOG_ERROR("[%s] File store failed to write. Exception: %s",
              categoryHandled.c_str(), e.what());
     success = false;
   }
@@ -944,7 +944,7 @@ bool FileStore::replaceOldest(boost::shared_ptr<logentry_vector_t> messages,
   string base_name = makeBaseFilename(now);
   int index = findOldestFile(base_name);
   if (index < 0) {
-    LOG_OPER("[%s] Could not find files <%s>", categoryHandled.c_str(), base_name.c_str());
+    LOG_WARNING("[%s] Could not find files <%s>", categoryHandled.c_str(), base_name.c_str());
     return false;
   }
 
@@ -962,7 +962,7 @@ bool FileStore::replaceOldest(boost::shared_ptr<logentry_vector_t> messages,
     success = writeMessages(messages, infile);
 
   } else {
-    LOG_OPER("[%s] Failed to open file <%s> for writing and truncate",
+    LOG_ERROR("[%s] Failed to open file <%s> for writing and truncate",
              categoryHandled.c_str(), filename.c_str());
     success = false;
   }
@@ -991,7 +991,7 @@ bool FileStore::readOldest(/*out*/ boost::shared_ptr<logentry_vector_t> messages
                                               filename, isBufferFile);
 
   if (!infile->openRead()) {
-    LOG_OPER("[%s] Failed to open file <%s> for reading",
+    LOG_WARNING("[%s] Failed to open file <%s> for reading",
             categoryHandled.c_str(), filename.c_str());
     return false;
   }
@@ -1008,7 +1008,7 @@ bool FileStore::readOldest(/*out*/ boost::shared_ptr<logentry_vector_t> messages
         entry->category = message.substr(0, message.length() - 1);
 
         if ((loss = infile->readNext(message)) <= 0) {
-          LOG_OPER("[%s] category not stored with message <%s> "
+          LOG_WARNING("[%s] category not stored with message <%s> "
               "corruption?, incompatible config change?",
               categoryHandled.c_str(), entry->category.c_str());
           break;
@@ -1031,7 +1031,7 @@ bool FileStore::readOldest(/*out*/ boost::shared_ptr<logentry_vector_t> messages
   }
   infile->close();
 
-  LOG_OPER("[%s] read <%lu> entries of <%d> bytes from file <%s>",
+  LOG_INFO("[%s] read <%lu> entries of <%d> bytes from file <%s>",
         categoryHandled.c_str(), messages->size(), bsize, filename.c_str());
   return true;
 }
@@ -1102,7 +1102,7 @@ bool ThriftFileStore::handleMessages(boost::shared_ptr<logentry_vector_t> messag
       ++eventsWritten;
       ++messages_handled;
     } catch (const TException& te) {
-      LOG_OPER("[%s] Thrift file store failed to write to file: %s\n", categoryHandled.c_str(), te.what());
+      LOG_WARNING("[%s] Thrift file store failed to write to file: %s\n", categoryHandled.c_str(), te.what());
       setStatus("File write error");
 
       // If we already handled some messages, remove them from vector before
@@ -1159,7 +1159,7 @@ bool ThriftFileStore::openInternal(bool incrementFilename, struct tm* current_ti
   try {
     suffix = findNewestFile(makeBaseFilename(current_time));
   } catch(const std::exception& e) {
-    LOG_OPER("Exception < %s > in ThriftFileStore::openInternal",
+    LOG_WARNING("Exception < %s > in ThriftFileStore::openInternal",
       e.what());
     return false;
   }
@@ -1176,7 +1176,7 @@ bool ThriftFileStore::openInternal(bool incrementFilename, struct tm* current_ti
   string filename = makeFullFilename(suffix, current_time);
   /* try to create the directory containing the file */
   if (!createFileDirectory()) {
-    LOG_OPER("[%s] Could not create path for file: %s",
+    LOG_WARNING("[%s] Could not create path for file: %s",
              categoryHandled.c_str(), filename.c_str());
     return false;
   }
@@ -1214,7 +1214,7 @@ bool ThriftFileStore::openInternal(bool incrementFilename, struct tm* current_ti
       }
     }
 
-    LOG_OPER("[%s] Opened file <%s> for writing",
+    LOG_INFO("[%s] Opened file <%s> for writing",
         categoryHandled.c_str(), filename.c_str());
 
     struct stat st;
@@ -1227,7 +1227,7 @@ bool ThriftFileStore::openInternal(bool incrementFilename, struct tm* current_ti
     eventsWritten = 0;
     setStatus("");
   } catch (const TException& te) {
-    LOG_OPER("[%s] Failed to open file <%s> for writing: %s\n",
+    LOG_WARNING("[%s] Failed to open file <%s> for writing: %s\n",
         categoryHandled.c_str(), filename.c_str(), te.what());
     setStatus("File open error");
     return false;
@@ -1248,7 +1248,7 @@ bool ThriftFileStore::createFileDirectory () {
   try {
     boost::filesystem::create_directories(filePath);
   } catch(const std::exception& e) {
-    LOG_OPER("Exception < %s > in ThriftFileStore::createFileDirectory for path %s",
+    LOG_WARNING("Exception < %s > in ThriftFileStore::createFileDirectory for path %s",
       e.what(),filePath.c_str());
     return false;
   }
@@ -1307,7 +1307,7 @@ void BufferStore::configure(pStoreConf configuration, pStoreConf parent) {
   configuration->getUnsigned("max_random_offset",
                              (unsigned long&) maxRandomOffset);
   if (maxRandomOffset > maxRetryInterval) {
-    LOG_OPER(" Warning max_random_offset > max_retry_interval look at using adaptive_backoff=no instead setting max_random_offset to max_retry_interval");
+    LOG_WARNING(" Warning max_random_offset > max_retry_interval look at using adaptive_backoff=no instead setting max_random_offset to max_retry_interval");
     maxRandomOffset = maxRetryInterval;
   }
 
@@ -1325,7 +1325,7 @@ void BufferStore::configure(pStoreConf configuration, pStoreConf parent) {
     if (d > 0 && d <= 1) {
       maxByPassRatio = d;
     } else {
-      LOG_OPER("[%s] Bad config - buffer_bypass_max_ratio <%s> range is (0, 1]",
+      LOG_ERROR("[%s] Bad config - buffer_bypass_max_ratio <%s> range is (0, 1]",
           categoryHandled.c_str(), tmp.c_str());
     }
   }
@@ -1335,13 +1335,13 @@ void BufferStore::configure(pStoreConf configuration, pStoreConf parent) {
   }
 
   if (retryIntervalRange > avgRetryInterval) {
-    LOG_OPER("[%s] Bad config - retry_interval_range must be less than retry_interval. Using <%d> as range instead of <%d>",
+    LOG_ERROR("[%s] Bad config - retry_interval_range must be less than retry_interval. Using <%d> as range instead of <%d>",
              categoryHandled.c_str(), (int)avgRetryInterval,
              (int)retryIntervalRange);
     retryIntervalRange = avgRetryInterval;
   }
   if (minRetryInterval > maxRetryInterval) {
-    LOG_OPER("[%s] Bad config - min_retry_interval must be less than max_retry_interval. Using <%d> and  <%d>, the default values instead",
+    LOG_ERROR("[%s] Bad config - min_retry_interval must be less than max_retry_interval. Using <%d> and  <%d>, the default values instead",
              categoryHandled.c_str(), DEFAULT_MIN_RETRY, DEFAULT_MAX_RETRY );
     minRetryInterval = DEFAULT_MIN_RETRY;
     maxRetryInterval = DEFAULT_MAX_RETRY;
@@ -1534,7 +1534,7 @@ void BufferStore::changeState(buffer_state_t new_state) {
     break;
   }
 
-  LOG_OPER("[%s] Changing state from <%s> to <%s>",
+  LOG_INFO("[%s] Changing state from <%s> to <%s>",
       categoryHandled.c_str(), stateAsString(state), stateAsString(new_state));
   state = new_state;
 }
@@ -1605,14 +1605,14 @@ void BufferStore::periodicCheck() {
                 // We were only able to process some, but not all of this batch
                 // of messages.  Replace this batch of messages with
                 // just the messages that were not processed.
-                LOG_OPER("[%s] buffer store primary store processed %lu/%lu messages",
+                LOG_INFO("[%s] buffer store primary store processed %lu/%lu messages",
                     categoryHandled.c_str(), size - messages->size(), size);
 
                 // Put back un-handled messages
                 if (!secondaryStore->replaceOldest(messages, &nowinfo)) {
                   // Nothing we can do but try to remove oldest messages and
                   // report a loss
-                  LOG_OPER("[%s] buffer store secondary store lost %lu messages",
+                  LOG_WARNING("[%s] buffer store secondary store lost %lu messages",
                       categoryHandled.c_str(), messages->size());
                   g_Handler->incCounter(categoryHandled, "lost", messages->size());
                   secondaryStore->deleteOldest(&nowinfo);
@@ -1629,13 +1629,13 @@ void BufferStore::periodicCheck() {
           // This is bad news. We'll stay in the sending state
           // and keep trying to read.
           setStatus("Failed to read from secondary store");
-          LOG_OPER("[%s] WARNING: buffer store can't read from secondary store",
+          LOG_WARNING("[%s] WARNING: buffer store can't read from secondary store",
               categoryHandled.c_str());
           break;
         }
 
         if (secondaryStore->empty(&nowinfo)) {
-          LOG_OPER("[%s] No more buffer files to send, switching to streaming mode",
+          LOG_INFO("[%s] No more buffer files to send, switching to streaming mode",
               categoryHandled.c_str());
           changeState(STREAMING);
 
@@ -1643,9 +1643,9 @@ void BufferStore::periodicCheck() {
         }
       }
     } catch(const std::exception& e) {
-      LOG_OPER("[%s] Failed in secondary to primary transfer ",
+      LOG_WARNING("[%s] Failed in secondary to primary transfer ",
           categoryHandled.c_str());
-      LOG_OPER("Exception: %s", e.what());
+      LOG_WARNING("Exception: %s", e.what());
       setStatus("bufferstore sending_buffer failure");
       changeState(DISCONNECTED);
     }
@@ -1722,7 +1722,7 @@ void BufferStore::setNewRetryInterval(bool success) {
       retryInterval = avgRetryInterval;
     }
   }
-  LOG_OPER("[%s] choosing new retry interval <%lu> seconds",
+  LOG_INFO("[%s] choosing new retry interval <%lu> seconds",
            categoryHandled.c_str(),
            (unsigned long) retryInterval);
 }
@@ -1819,7 +1819,7 @@ void NetworkStore::configure(pStoreConf configuration, pStoreConf parent) {
     configmod = getNetworkDynamicConfigMod(dynamicType.c_str());
     if (configmod) {
       if (!configmod->isConfigValidFunc(categoryHandled, configuration.get())) {
-        LOG_OPER("[%s] dynamic network configuration is not valid.",
+        LOG_WARNING("[%s] dynamic network configuration is not valid.",
                 categoryHandled.c_str());
         configmod = NULL;
       } else {
@@ -1829,12 +1829,12 @@ void NetworkStore::configure(pStoreConf configuration, pStoreConf parent) {
         if (configmod->getHostFunc(categoryHandled, storeConf.get(), host, port)) {
           remoteHost = host;
           remotePort = port;
-          LOG_OPER("[%s] dynamic configred network store destination configured:<%s:%lu>",
+          LOG_INFO("[%s] dynamic configred network store destination configured:<%s:%lu>",
             categoryHandled.c_str(), remoteHost.c_str(), remotePort);
         }
       }
     } else {
-      LOG_OPER("[%s] dynamic network configuration is not valid. Unable to find network dynamic configuration module with name <%s>",
+      LOG_WARNING("[%s] dynamic network configuration is not valid. Unable to find network dynamic configuration module with name <%s>",
                 categoryHandled.c_str(), dynamicType.c_str());
     }
   }
@@ -1849,7 +1849,7 @@ void NetworkStore::periodicCheck() {
     if (success && (host != remoteHost || port != remotePort)) {
       // if it is different from the current configuration
       // then close and open again
-      LOG_OPER("[%s] dynamic configred network store destination changed. old value:<%s:%lu>, new value:<%s:%lu>",
+      LOG_INFO("[%s] dynamic configred network store destination changed. old value:<%s:%lu>, new value:<%s:%lu>",
                categoryHandled.c_str(), remoteHost.c_str(), remotePort,
                host.c_str(), (long unsigned)port);
       remoteHost = host;
@@ -1880,7 +1880,7 @@ bool NetworkStore::open() {
 
     // Cannot open if we couldn't find any servers
     if (!success || servers.empty()) {
-      LOG_OPER("[%s] Failed to get servers from service", categoryHandled.c_str());
+      LOG_WARNING("[%s] Failed to get servers from service", categoryHandled.c_str());
       setStatus("Could not get list of servers from service");
       return false;
     }
@@ -1889,7 +1889,7 @@ bool NetworkStore::open() {
       opened = g_connPool.open(serviceName, servers, static_cast<int>(timeout));
     } else {
       if (unpooledConn != NULL) {
-        LOG_OPER("Logic error: NetworkStore::open unpooledConn is not NULL"
+        LOG_ERROR("Logic error: NetworkStore::open unpooledConn is not NULL"
             " service = %s", serviceName.c_str());
       }
       unpooledConn = shared_ptr<scribeConn>(new scribeConn(serviceName,
@@ -1901,7 +1901,7 @@ bool NetworkStore::open() {
     }
 
   } else if (remotePort <= 0 || remoteHost.empty()) {
-    LOG_OPER("[%s] Bad config - won't attempt to connect to <%s:%lu>",
+    LOG_ERROR("[%s] Bad config - won't attempt to connect to <%s:%lu>",
         categoryHandled.c_str(), remoteHost.c_str(), remotePort);
     setStatus("Bad config - invalid location for remote server");
     return false;
@@ -1912,7 +1912,7 @@ bool NetworkStore::open() {
     } else {
       // only open unpooled connection if not already open
       if (unpooledConn != NULL) {
-        LOG_OPER("Logic error: NetworkStore::open unpooledConn is not NULL"
+        LOG_ERROR("Logic error: NetworkStore::open unpooledConn is not NULL"
             " %s:%lu", remoteHost.c_str(), remotePort);
       }
       unpooledConn = shared_ptr<scribeConn>(new scribeConn(remoteHost,
@@ -1979,7 +1979,7 @@ NetworkStore::handleMessages(boost::shared_ptr<logentry_vector_t> messages) {
 
   if (!isOpen()) {
     if (!open()) {
-    LOG_OPER("[%s] Could not open NetworkStore in handleMessages",
+    LOG_INFO("[%s] Could not open NetworkStore in handleMessages",
              categoryHandled.c_str());
     return false;
     }
@@ -2008,7 +2008,7 @@ NetworkStore::handleMessages(boost::shared_ptr<logentry_vector_t> messages) {
     }
   } else {
     ret = CONN_FATAL;
-    LOG_OPER("[%s] Logic error: NetworkStore::handleMessages unpooledConn "
+    LOG_ERROR("[%s] Logic error: NetworkStore::handleMessages unpooledConn "
         "is NULL", categoryHandled.c_str());
   }
   if (ret == CONN_FATAL) {
@@ -2115,7 +2115,7 @@ void BucketStore::createBucketsFromBucket(pStoreConf configuration,
 
 handle_error:
   setStatus(error_msg);
-  LOG_OPER("[%s] Bad config - %s", categoryHandled.c_str(),
+  LOG_ERROR("[%s] Bad config - %s", categoryHandled.c_str(),
            error_msg.c_str());
   numBuckets = 0;
   buckets.clear();
@@ -2185,7 +2185,7 @@ void BucketStore::createBuckets(pStoreConf configuration) {
 
 handle_error:
   setStatus(error_msg);
-  LOG_OPER("[%s] Bad config - %s", categoryHandled.c_str(),
+  LOG_ERROR("[%s] Bad config - %s", categoryHandled.c_str(),
            error_msg.c_str());
   numBuckets = 0;
   buckets.clear();
@@ -2252,7 +2252,7 @@ void BucketStore::configure(pStoreConf configuration, pStoreConf parent) {
     configuration->getUnsigned("bucket_range", bucketRange);
 
     if (bucketRange == 0) {
-      LOG_OPER("[%s] config warning - bucket_range is 0",
+      LOG_WARNING("[%s] config warning - bucket_range is 0",
                categoryHandled.c_str());
     }
   }
@@ -2261,10 +2261,10 @@ void BucketStore::configure(pStoreConf configuration, pStoreConf parent) {
   if (need_delimiter) {
     configuration->getUnsigned("delimiter", delim_long);
     if (delim_long > 255) {
-      LOG_OPER("[%s] config warning - delimiter is too large to fit in a char, using default", categoryHandled.c_str());
+      LOG_WARNING("[%s] config warning - delimiter is too large to fit in a char, using default", categoryHandled.c_str());
       delimiter = DEFAULT_BUCKETSTORE_DELIMITER;
     } else if (delim_long == 0) {
-      LOG_OPER("[%s] config warning - delimiter is zero, using default", categoryHandled.c_str());
+      LOG_WARNING("[%s] config warning - delimiter is zero, using default", categoryHandled.c_str());
       delimiter = DEFAULT_BUCKETSTORE_DELIMITER;
     } else {
       delimiter = (char)delim_long;
@@ -2299,7 +2299,7 @@ void BucketStore::configure(pStoreConf configuration, pStoreConf parent) {
 
 handle_error:
   setStatus(error_msg);
-  LOG_OPER("[%s] %s", categoryHandled.c_str(), error_msg.c_str());
+  LOG_ERROR("[%s] %s", categoryHandled.c_str(), error_msg.c_str());
   numBuckets = 0;
   buckets.clear();
 }
@@ -2307,7 +2307,7 @@ handle_error:
 bool BucketStore::open() {
   // we have one extra bucket for messages we can't hash
   if (numBuckets <= 0 || buckets.size() != numBuckets + 1) {
-    LOG_OPER("[%s] Can't open bucket store with <%d> of <%lu> buckets", categoryHandled.c_str(), (int)buckets.size(), numBuckets);
+    LOG_WARNING("[%s] Can't open bucket store with <%d> of <%lu> buckets", categoryHandled.c_str(), (int)buckets.size(), numBuckets);
     return false;
   }
 
@@ -2408,7 +2408,7 @@ bool BucketStore::handleMessages(boost::shared_ptr<logentry_vector_t> messages) 
   bucketed_messages.resize(numBuckets + 1);
 
   if (numBuckets == 0) {
-    LOG_OPER("[%s] Failed to write - no buckets configured",
+    LOG_WARNING("[%s] Failed to write - no buckets configured",
              categoryHandled.c_str());
     setStatus("Failed write to bucket store");
     return false;
@@ -2688,14 +2688,14 @@ void MultiStore::configure(pStoreConf configuration, pStoreConf parent) {
   if (configuration->getString("report_success", report_preference)) {
     if (0 == report_preference.compare("all")) {
       report_success = SUCCESS_ALL;
-      LOG_OPER("[%s] MULTI: Logging success only if all stores succeed.",
+      LOG_INFO("[%s] MULTI: Logging success only if all stores succeed.",
                categoryHandled.c_str());
     } else if (0 == report_preference.compare("any")) {
       report_success = SUCCESS_ANY;
-      LOG_OPER("[%s] MULTI: Logging success if any store succeeds.",
+      LOG_INFO("[%s] MULTI: Logging success if any store succeeds.",
                categoryHandled.c_str());
     } else {
-      LOG_OPER("[%s] MULTI: %s is an invalid value for report_success.",
+      LOG_ERROR("[%s] MULTI: %s is an invalid value for report_success.",
                categoryHandled.c_str(), report_preference.c_str());
       setStatus("MULTI: Invalid report_success value.");
       return;
@@ -2719,14 +2719,14 @@ void MultiStore::configure(pStoreConf configuration, pStoreConf parent) {
     } else {
       // find this store's type
       if (!cur_conf->getString("type", cur_type)) {
-        LOG_OPER("[%s] MULTI: Store %d is missing type.", categoryHandled.c_str(), i);
+        LOG_ERROR("[%s] MULTI: Store %d is missing type.", categoryHandled.c_str(), i);
         setStatus("MULTI: Store is missing type.");
         return;
       } else {
         // add it to the list
         cur_store = createStore(storeQueue, cur_type, categoryHandled, false,
                                 multiCategory);
-        LOG_OPER("[%s] MULTI: Configured store of type %s successfully.",
+        LOG_INFO("[%s] MULTI: Configured store of type %s successfully.",
                  categoryHandled.c_str(), cur_type.c_str());
         cur_store->configure(cur_conf, storeConf);
         stores.push_back(cur_store);
@@ -2736,7 +2736,7 @@ void MultiStore::configure(pStoreConf configuration, pStoreConf parent) {
 
   if (stores.size() == 0) {
     setStatus("MULTI: No stores found, invalid store.");
-    LOG_OPER("[%s] MULTI: No stores found, invalid store.", categoryHandled.c_str());
+    LOG_ERROR("[%s] MULTI: No stores found, invalid store.", categoryHandled.c_str());
   }
 }
 
@@ -2848,14 +2848,14 @@ void CategoryStore::configure(pStoreConf configuration, pStoreConf parent) {
 
   if (!configuration->getStore("model", cur_conf)) {
     setStatus("CATEGORYSTORE: NO stores found, invalid store.");
-    LOG_OPER("[%s] CATEGORYSTORE: No stores found, invalid store.",
+    LOG_ERROR("[%s] CATEGORYSTORE: No stores found, invalid store.",
              categoryHandled.c_str());
   } else {
     string cur_type;
 
     // find this store's type
     if (!cur_conf->getString("type", cur_type)) {
-      LOG_OPER("[%s] CATEGORYSTORE: Store is missing type.",
+      LOG_ERROR("[%s] CATEGORYSTORE: Store is missing type.",
                categoryHandled.c_str());
       setStatus("CATEGORYSTORE: Store is missing type.");
       return;
@@ -2871,7 +2871,7 @@ void CategoryStore::configureCommon(pStoreConf configuration,
   Store::configure(configuration, parent);
   // initialize model store
   modelStore = createStore(storeQueue, type, categoryHandled, false, false);
-  LOG_OPER("[%s] %s: Configured store of type %s successfully.",
+  LOG_INFO("[%s] %s: Configured store of type %s successfully.",
            categoryHandled.c_str(), getType().c_str(), type.c_str());
   modelStore->configure(configuration, parent);
 }
@@ -2908,7 +2908,7 @@ bool CategoryStore::handleMessages(boost::shared_ptr<logentry_vector_t> messages
     }
 
     if (store == NULL || !store->isOpen()) {
-      LOG_OPER("[%s] Failed to open store for category <%s>",
+      LOG_INFO("[%s] Failed to open store for category <%s>",
                categoryHandled.c_str(), category.c_str());
       failed_messages->push_back(*message_iter);
       continue;
@@ -2919,7 +2919,7 @@ bool CategoryStore::handleMessages(boost::shared_ptr<logentry_vector_t> messages
     singleMessage->push_back(*message_iter);
 
     if (!store->handleMessages(singleMessage)) {
-      LOG_OPER("[%s] Failed to handle message for category <%s>",
+      LOG_INFO("[%s] Failed to handle message for category <%s>",
                categoryHandled.c_str(), category.c_str());
       failed_messages->push_back(*message_iter);
       continue;

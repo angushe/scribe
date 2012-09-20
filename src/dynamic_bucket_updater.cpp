@@ -71,7 +71,7 @@ bool DynamicBucketUpdater::getHost(const string& category,
   }
 
   if (!success) {
-    LOG_OPER("[%s] dynamic bucket updater failed: bid=%ld",
+    LOG_INFO("[%s] dynamic bucket updater failed: bid=%ld",
              category.c_str(), bid);
   }
   return success;
@@ -82,7 +82,7 @@ bool DynamicBucketUpdater::isConfigValid(const string& category,
   // we need dynamic_updater_bid paramter
   string bid;
   if (!pconf->getString("bucket_id", bid)) {
-    LOG_OPER("[%s] dynamic bucket updater configuration invalid. Missing bucket_id.  Is the network a descendant of a bucket store?", category.c_str());
+    LOG_ERROR("[%s] dynamic bucket updater configuration invalid. Missing bucket_id.  Is the network a descendant of a bucket store?", category.c_str());
     return false;
   }
 
@@ -92,7 +92,7 @@ bool DynamicBucketUpdater::isConfigValid(const string& category,
   if (!pconf->getString("bucket_updater_service", service) &&
     (!pconf->getString("bucket_updater_host", host) ||
      !pconf->getString("bucket_updater_port", port))) {
-    LOG_OPER("[%s] dynamic bucket updater configuration invalid. Either bucket_updater_service or bucket_updater_host and bucket_updater_port is needed.  Current values are: bucket_updater_service=<%s>, bucket_updater_host=<%s>, bucket_updater_port=<%s>",
+    LOG_ERROR("[%s] dynamic bucket updater configuration invalid. Either bucket_updater_service or bucket_updater_host and bucket_updater_port is needed.  Current values are: bucket_updater_service=<%s>, bucket_updater_host=<%s>, bucket_updater_port=<%s>",
         category.c_str(), service.c_str(), host.c_str(), port.c_str());
     return false;
   }
@@ -176,7 +176,7 @@ bool DynamicBucketUpdater::getHost(facebook::fb303::FacebookBase *fbBase,
 
     // Cannot open if we couldn't find any servers
     if (!success || servers.empty()) {
-      LOG_OPER("[%s] Failed to get servers from Service [%s] "
+      LOG_INFO("[%s] Failed to get servers from Service [%s] "
                "for dynamic bucket updater",
                category.c_str(), serviceName.c_str());
 
@@ -247,7 +247,7 @@ bool DynamicBucketUpdater::getHostInternal(const string &category,
     ostringstream oss;
     oss << "Missing mapping for category " << category << ", bid: " << bid
         << ", updateHost: " << updateHost << ", updatePort: " << updatePort;
-    LOG_OPER(oss.str());
+    LOG_INFO(oss.str());
     addStatValue(DynamicBucketUpdater::FB303_ERR_NOMAPPING, 1);
   }
 
@@ -291,7 +291,7 @@ bool DynamicBucketUpdater::periodicCheck(string category,
                          sendTimeout,
                          recvTimeout);
   } catch (const TTransportException& ttx) {
-    LOG_OPER("periodicCheck(%s, %s, %u, %d, %d, %d) TTransportException: %s",
+    LOG_INFO("periodicCheck(%s, %s, %u, %d, %d, %d) TTransportException: %s",
             category.c_str(), host.c_str(), port,
             connTimeout, sendTimeout, recvTimeout,
             ttx.what());
@@ -299,7 +299,7 @@ bool DynamicBucketUpdater::periodicCheck(string category,
     ret = false;
   } catch (const BucketStoreMappingException& bex) {
     ostringstream oss;
-    LOG_OPER("periodicCheck(%s, %s, %u, %d, %d, %d) TTransportException: %s",
+    LOG_INFO("periodicCheck(%s, %s, %u, %d, %d, %d) TTransportException: %s",
             category.c_str(), host.c_str(), port,
             connTimeout, sendTimeout, recvTimeout,
             bex.message.c_str());
@@ -354,7 +354,7 @@ bool DynamicBucketUpdater::updateInternal(
         << ", "
         << remotePort
         << ")";
-    LOG_OPER(oss.str());
+    LOG_INFO(oss.str());
     return false;
   }
 

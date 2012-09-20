@@ -178,7 +178,7 @@ StdFile::readNext(std::string& _return) {
     inputBuffer = (char *) malloc(bufferSize);
     if (inputBuffer == NULL) {
       CALC_LOSS();
-      LOG_OPER("WARNING: nomem Data Loss loss %ld bytes in %s", size,
+      LOG_WARNING("WARNING: nomem Data Loss loss %ld bytes in %s", size,
           filename.c_str());
      return (size);
     }
@@ -193,7 +193,7 @@ StdFile::readNext(std::string& _return) {
   if (size >= INT_MAX) {
     /* Definitely corrupted. Stop reading any further */
     CALC_LOSS();
-    LOG_OPER("WARNING: Corruption Data Loss %ld bytes in %s", size,
+    LOG_WARNING("WARNING: Corruption Data Loss %ld bytes in %s", size,
         filename.c_str());
     return (size);
   }
@@ -204,12 +204,12 @@ StdFile::readNext(std::string& _return) {
     free(inputBuffer);
     inputBuffer = (char *) malloc(bufferSize);
     if (bufferSize > LARGE_BUFFER_SIZE) {
-      LOG_OPER("WARNING: allocating large buffer Corruption? %d", bufferSize);
+      LOG_WARNING("WARNING: allocating large buffer Corruption? %d", bufferSize);
     }
   }
   if (inputBuffer == NULL) {
     CALC_LOSS();
-    LOG_OPER("WARNING: nomem Corruption? Data Loss %ld bytes in %s", size,
+    LOG_WARNING("WARNING: nomem Corruption? Data Loss %ld bytes in %s", size,
         filename.c_str());
     return (size);
   }
@@ -218,7 +218,7 @@ StdFile::readNext(std::string& _return) {
     _return.assign(inputBuffer, size);
   } else {
     CALC_LOSS();
-    LOG_OPER("WARNING: Data Loss %ld bytes in %s", size, filename.c_str());
+    LOG_WARNING("WARNING: Data Loss %ld bytes in %s", size, filename.c_str());
   }
   if (bufferSize > LARGE_BUFFER_SIZE) {
     free(inputBuffer);
@@ -233,7 +233,7 @@ unsigned long StdFile::fileSize() {
   try {
     size = boost::filesystem::file_size(filename.c_str());
   } catch(const std::exception& e) {
-    LOG_OPER("Failed to get size for file <%s> error <%s>", filename.c_str(), e.what());
+    LOG_WARNING("Failed to get size for file <%s> error <%s>", filename.c_str(), e.what());
     size = 0;
   }
   return size;
@@ -249,7 +249,7 @@ void StdFile::listImpl(const std::string& path, std::vector<std::string>& _retur
       }
     }
   } catch (const std::exception& e) {
-    LOG_OPER("exception <%s> listing files in <%s>",
+    LOG_WARNING("exception <%s> listing files in <%s>",
              e.what(), path.c_str());
   }
 }
@@ -262,7 +262,7 @@ bool StdFile::createDirectory(std::string path) {
   try {
     boost::filesystem::create_directories(path);
   } catch(const std::exception& e) {
-    LOG_OPER("Exception < %s > in StdFile::createDirectory for path %s ",
+    LOG_WARNING("Exception < %s > in StdFile::createDirectory for path %s ",
       e.what(),path.c_str());
     return false;
   }

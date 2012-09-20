@@ -29,13 +29,11 @@ from thrift.protocol import TBinaryProtocol
 loop_num = 1
 
 if len(sys.argv) == 2:
-
   category = sys.argv[1]
   host = '127.0.0.1'
   port = 1463
   
 elif len(sys.argv) == 4 and sys.argv[1] == '-h':
-
   category = sys.argv[3]
   host_port = sys.argv[2].split(':')
   host = host_port[0]
@@ -44,8 +42,13 @@ elif len(sys.argv) == 4 and sys.argv[1] == '-h':
   else:
     port = 1463
     
+elif len(sys.argv) == 4 and sys.argv[2] == '-l':
+  category = sys.argv[1]
+  host = '127.0.0.1'
+  port = 1463
+  loop_num = int(sys.argv[3])
+    
 elif len(sys.argv) == 6 and sys.argv[1] == '-h' and sys.argv[4] == '-l':
-
   category = sys.argv[3]
   host_port = sys.argv[2].split(':')
   host = host_port[0]
